@@ -4,7 +4,7 @@ import { LEVELS, MAX_LIVES } from './constants';
 import { generateMathProblem, getBalloonColor, getRandomBalloonType } from './utils/gameUtils';
 import Keypad from './components/Keypad';
 import Balloon from './components/Balloon';
-import { Play, RotateCcw, Menu, Pause, Trophy, Star, Lock, Heart, Volume2 } from 'lucide-react';
+import { Play, RotateCcw, Pause, Trophy, Star, Lock, Heart } from 'lucide-react';
 
 export default function App() {
   // Global State
@@ -24,12 +24,14 @@ export default function App() {
   const lastTimeRef = useRef<number>();
   const lastSpawnRef = useRef<number>(0);
   const gameContainerRef = useRef<HTMLDivElement>(null);
-  const effectTimeoutRef = useRef<number | null>(null);
 
   // --- Game Loop Logic ---
 
   const spawnBalloon = useCallback(() => {
     const config = LEVELS[level - 1];
+    // Safety check if config doesn't exist (e.g. level > 20)
+    if (!config) return;
+
     const { question, answer } = generateMathProblem(config.operators, config.numberRange);
     const type = getRandomBalloonType(config.specialChance);
     
@@ -49,8 +51,7 @@ export default function App() {
       isPopped: false,
     };
     
-    // Modify bomb for this game logic: Bombs have equations. If you solve it, you lose a life. 
-    // It's a trap.
+    // Modify bomb for this game logic
     if (type === BalloonType.BOMB) {
         const bombMath = generateMathProblem(config.operators, config.numberRange);
         newBalloon.question = bombMath.question;
@@ -66,6 +67,7 @@ export default function App() {
     lastTimeRef.current = time;
 
     const config = LEVELS[level - 1];
+    if (!config) return;
     
     // Spawn Logic
     if (time - lastSpawnRef.current > (effects.slowMotion ? config.spawnRate * 1.5 : config.spawnRate)) {
@@ -125,21 +127,21 @@ export default function App() {
   useEffect(() => {
     if (screen === 'GAME' && lives <= 0) {
       setScreen('GAME_OVER');
-      cancelAnimationFrame(requestRef.current!);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
     }
   }, [lives, screen]);
 
   useEffect(() => {
     if (screen === 'GAME') {
       const config = LEVELS[level - 1];
-      if (balloonsPoppedInLevel >= config.maxBalloons) {
+      if (config && balloonsPoppedInLevel >= config.maxBalloons) {
         if (level === 20) {
             setScreen('VICTORY');
         } else {
             setScreen('LEVEL_COMPLETE');
             if (level >= unlockedLevel) setUnlockedLevel(level + 1);
         }
-        cancelAnimationFrame(requestRef.current!);
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
       }
     }
   }, [balloonsPoppedInLevel, level, screen, unlockedLevel]);
@@ -147,7 +149,9 @@ export default function App() {
   useEffect(() => {
     if (screen === 'GAME') {
       requestRef.current = requestAnimationFrame(updateGame);
-      return () => cancelAnimationFrame(requestRef.current!);
+      return () => {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      };
     }
   }, [screen, updateGame]);
 
@@ -391,7 +395,7 @@ export default function App() {
                <div className="w-24 h-3 bg-black/30 rounded-full overflow-hidden hidden sm:block">
                    <div 
                       className="h-full bg-yellow-400 transition-all duration-300"
-                      style={{ width: `${(balloonsPoppedInLevel / LEVELS[level-1].maxBalloons) * 100}%`}}
+                      style={{ width: `${(balloonsPoppedInLevel / (LEVELS[level-1]?.maxBalloons || 10)) * 100}%`}}
                    />
                </div>
                
