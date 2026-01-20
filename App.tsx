@@ -24,7 +24,7 @@ export default function App() {
   const lastTimeRef = useRef<number>();
   const lastSpawnRef = useRef<number>(0);
   const gameContainerRef = useRef<HTMLDivElement>(null);
-  const effectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const effectTimeoutRef = useRef<number | null>(null);
 
   // --- Game Loop Logic ---
 
@@ -154,7 +154,7 @@ export default function App() {
   // --- Splash Screen Timer ---
   useEffect(() => {
     if (screen === 'SPLASH') {
-      const timer = setTimeout(() => setScreen('HOME'), 2500);
+      const timer = window.setTimeout(() => setScreen('HOME'), 2500);
       return () => clearTimeout(timer);
     }
   }, [screen]);
@@ -222,20 +222,6 @@ export default function App() {
       setBalloons(prev => prev.map(b => b.id === hitBalloon.id ? { ...b, isPopped: true } : b));
       setInput(''); // Clear input on success
     }
-    // If no match, do we penalize? 
-    // To keep it kid friendly, maybe not immediately penalize unless it's a distinct "Wrong Answer" mode.
-    // However, the prompt says "Wrong answer: life -1". 
-    // Implementing that strictly might be frustrating if they just mis-typed. 
-    // Let's check if the input matches ANY balloon. If not, wait for user to clear or clear automatically?
-    // Better UX: Only clear input if it matches. If user waits too long or presses enter?
-    // Since we check on every keystroke, "Wrong Answer" is ambiguous.
-    // Implementation: We won't penalize typing partial numbers.
-    // But if we had an "Enter" button, we would.
-    // Let's rely on the auto-check. If they type '12' and the answer is '12', it pops.
-    // If they type '13' and nothing matches '13', it just sits there. 
-    // To strictly follow "Wrong answer: life -1", we'd need a submit button. 
-    // Compromise: We check whenever the input length is >= length of answers on screen? No too complex.
-    // Let's stick to positive reinforcement: Pop if matches.
   }, [balloons, effects]);
 
   // Check answer whenever input changes
